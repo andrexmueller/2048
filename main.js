@@ -316,8 +316,38 @@ function novoJogo() {
     cellsLivres.randomCell();
     setEstilo(board);
 }
+/* =========================================================================== */
+/* ===================funcões para teste e depuração========================== */
+/* =========================================================================== */
+
+function limpaBoard() {
+    for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+            board[i][j].textContent = '';
+            board[i][j].className = 'cell';
+        }
+    }
+}
+
+function setLinha(row, valores) {
+    for (let i = 0; i < 4; i++) {
+        board[row][i].textContent = valores[i];
+        board[row][i].className = estilos[valores[i]];
+    }
+}
+
+function setColuna(col, valores) {
+    for (let i = 0; i < 4; i++) {
+        board[i][col].textContent = valores[i];
+        board[i][col].className = estilos[valores[i]];
+    }
+}
 
 
+
+
+/* =========================================================================== */
+/* ====================INSTANCIA E INICIALIZA ================================ */
 /* =========================================================================== */
 
 // cria o tabuleiro
