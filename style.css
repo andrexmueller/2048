@@ -21,7 +21,7 @@ h1 {
 }
 
 .cell, .c2, .c4, .c8, .c16, .c32, .c64,
-.c128, .c256, .c512, .c1024, .c2048, .c4096, .c8192 {
+.c128, .c256, .c512, .c1024, .c2048, .c4096, .c8192, .random {
     border-color: black;
     font-size: 30px;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
@@ -111,3 +111,21 @@ h1 {
     color: #2d0404;
 }
 
+.random {
+    border-color: black;
+    background-color: #aeced5;
+    color: #051e03;
+	animation: blinkingText 2s infinite;
+}
+@keyframes blinkingText{
+    
+    0%		{ background-color: #b0dbf1;}
+    /* 20%     { background-color: #006ee6;} */
+    /* 40%		{ background-color: #253da1;} */
+    50%		{ 
+        background-color: #02198b;
+        color: #eceeb6;
+    }
+    /* 80%		{ background-color: #02155a;} */
+    /* 100%	{ background-color: #000137;} */
+}

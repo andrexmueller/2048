@@ -2,7 +2,10 @@
             2048
 */
 
+// dimensões do grid N x N
+const N = 4;
 
+// estilização das células
 const estilos = {
     '': 'cell', '2': 'c2', '4': 'c4', '8': 'c8',
     '16': 'c16', '32': 'c32', '64': 'c64', '128': 'c128',
@@ -11,244 +14,121 @@ const estilos = {
 }
 
 
-// classe que controla o conjunto de cells livres
-class Cells {
-    constructor(board) {
-        this.cellsLivres = [];
-        for (let row of board) {
-            for (let cell of row) {
-                this.cellsLivres.push(cell);
+// constroi matriz que conterá os numeros e a lógica do jogo
+class Matriz {
+    constructor(dim) {
+        this.dim = dim;
+        // matrix principal contendo os números
+        this.matriz = []
+        // lista de células livres
+        this.cellLivres = new Array;
+        for (let i = 0; i < dim; i++) {
+            let linha = []
+            for (let j = 0; j < dim; j++) {
+                linha.push(0);
+                // inclui o elemento cell na lista de cells livres
+                this.cellLivres.push(document.getElementById(`${i}-${j}`))
             }
+            this.matriz.push(linha);
         }
-        this.livres = this.cellsLivres.length;
+        this.randomCell();
+        this.randomCell()
     }
-    ocupaCell(cell) {
-        let index = this.cellsLivres.indexOf(cell);
-        this.cellsLivres.splice(index, 1);
-        this.livres--;
+
+    // getters e setters das linhas e colunas
+    // são utilizados para mover e colapsar as celulas
+    getLinha(idxLinha) {
+        return this.matriz[idxLinha]
     }
-    liberaCell(cell) {
-        this.cellsLivres.push(cell);
-        this.livres++;
+
+    setLinha(idxLinha, novaLinha) {
+        for (let j = 0; j < this.dim; j++) {
+            this.matriz[idxLinha][j] = novaLinha[j];
+        }
+        this.updateDisplay();
     }
+
+    getColuna(idxColuna) {
+        let coluna = [];
+        for (let i = 0; i < this.dim; i++) {
+            coluna.push(this.matriz[i][idxColuna])
+        }
+        return coluna;
+    }
+    
+    setColuna(idxColuna, novaColuna) {
+        for (let i = 0; i < this.dim; i++) {
+            this.matriz[i][idxColuna] = novaColuna[i]
+        }
+        this.updateDisplay();
+    }
+
+    // preenche uma célula vazia aleatória
     randomCell() {
-        let idx = Math.floor(Math.random() * this.livres);
-        const rc = this.cellsLivres.splice(idx, 1)[0];
-        this.livres--;
-        if (Math.random() > 0.9) {
-            rc.textContent = '4'; 
-            rc.className = estilos['4']    
-        } else {
-            rc.textContent = '2'; 
-            rc.className = estilos['2']    
-        }
+        let idx = Math.floor(Math.random() * this.cellLivres.length);
+        let rc = this.cellLivres.splice(idx, 1)[0];
+        let val = 2;
+        if (Math.random() > 0.9) val = 4;
+        rc.textContent = val;
+        rc.className = estilos[val];
+        let coord = rc.id.split('-').map((x)=>parseInt(x));
+        this.matriz[coord[0]][coord[1]] = val;
+        rc.className = 'random';
     }
-    reset() {
-        this.cellsLivres = [];
-        for (let row of board) {
-            for (let cell of row) {
-                this.cellsLivres.push(cell);
+
+    // move todo a matriz/grid, conforme a direção
+    // depois colapsa os valores e depois move novamente 
+    // para remover as celulas vazias
+    move(direcao) {
+        if (!checkValidMove()) alert('GAME OVER!\nClique em <Novo Jogo> para continuar');
+        for (let i = 0; i < this.dim; i++) {
+            let arr;
+            if (direcao === 'ArrowDown') arr = [...this.getColuna(i).reverse()];
+            if (direcao === 'ArrowUp') arr = [...this.getColuna(i)];
+            if (direcao === 'ArrowRight') arr = [...this.getLinha(i).reverse()];
+            if (direcao === 'ArrowLeft') arr = [...this.getLinha(i)];
+            move(arr);
+            colapsa(arr);
+            move(arr);
+            if (direcao === 'ArrowDown') this.setColuna(i, arr.reverse());
+            if (direcao === 'ArrowUp')  this.setColuna(i, arr);
+            if (direcao === 'ArrowRight') this.setLinha(i, arr.reverse());
+            if (direcao === 'ArrowLeft') this.setLinha(i, arr);
+        }
+        if (detectaMovimento.moveu) this.randomCell();
+        detectaMovimento.reset();   
+    }
+
+    // sincroniza o elemento html grid com a matriz
+    updateDisplay() {
+        this.cellLivres = []
+        for (let i = 0; i < this.dim; i++) {
+            for (let j = 0; j < this.dim; j++) {
+                let val = this.matriz[i][j];
+                if (val === 0) {
+                    this.cellLivres.push(document.getElementById(`${i}-${j}`));
+                    val = '';
+                }
+                document.getElementById(`${i}-${j}`).textContent = val;
+                document.getElementById(`${i}-${j}`).className = estilos[val];
             }
         }
-        this.livres = this.cellsLivres.length;
     }
 }
 
-// classe que observa se houve alteração do grid 
-// após algum movimento
+// classe responsável por detectar se houve movimento do grid
 class Movimento {
     constructor() {
         this.moveu = false;
     }
-    mover() {
-        this.moveu = true;
-    }
-    reset() {
-        this.moveu = false;
-    }
+    mover() { this.moveu = true }
+    reset() { this.moveu = false }
 }
 
-
-// movimento de cada célula, individualmente
-function cellParaBaixo(row, col, board) {
-    if (row === 3) return;
-    const val = valorCell(board[row][col]);
-    if (val === 0) return;
-    const valAbaixo = valorCell(board[row+1][col])
-    if (valAbaixo === 0) {
-        board[row+1][col].textContent = val;
-        board[row][col].textContent = '';
-        cellsLivres.liberaCell(board[row][col])
-        cellsLivres.ocupaCell(board[row+1][col])
-        detectaMovimento.mover();
-        cellParaBaixo(row+1, col, board);
-    }
-    if (valAbaixo === val) {
-        board[row+1][col].textContent = val + valAbaixo;
-        board[row][col].textContent = '';
-        cellsLivres.liberaCell(board[row][col])
-        detectaMovimento.mover();
-        sc.atualizaScore(2 * val);
-    }
-}
-
-function moveParaBaixo() {
-    for (let i = 3; i >= 0; i--) {
-        for (let j = 0; j < 4; j++) {
-            cellParaBaixo(i, j, board)
-        }
-    }
-    if (detectaMovimento.moveu) {
-        cellsLivres.randomCell();
-        detectaMovimento.reset();
-    }
-}
-
-function cellParaCima(row, col, board) {
-    if (row === 0) return;
-    const val = valorCell(board[row][col])
-    if (val === 0) return;
-    const valAcima = valorCell(board[row-1][col])
-    if (valAcima === 0) {
-        board[row-1][col].textContent = val;
-        board[row][col].textContent = '';
-        cellsLivres.liberaCell(board[row][col])
-        cellsLivres.ocupaCell(board[row-1][col])
-        detectaMovimento.mover();
-        cellParaCima(row-1, col, board);
-    }
-    if (valAcima === val) {
-        board[row-1][col].textContent = val + valAcima;
-        board[row][col].textContent = '';
-        cellsLivres.liberaCell(board[row][col])
-        detectaMovimento.mover();
-        sc.atualizaScore(2 * val);
-    }
-}
-
-function moveParaCima() {
-    for (let i = 0; i < 4; i++) {
-        for (let j = 0; j < 4; j++) {
-            cellParaCima(i, j, board)
-        }
-    }
-    if (detectaMovimento.moveu) {
-        cellsLivres.randomCell();
-        detectaMovimento.reset();
-    }
-}
-
-function cellParaDireita(row, col, board) {
-    if (col === 3) return;
-    const val = valorCell(board[row][col])
-    if (val === 0) return;
-    const valDireita = valorCell(board[row][col+1]);
-    if (valDireita === 0) {
-        board[row][col+1].textContent = val;
-        board[row][col].textContent = '';
-        cellsLivres.liberaCell(board[row][col])
-        cellsLivres.ocupaCell(board[row][col+1])
-        detectaMovimento.mover();
-        cellParaDireita(row, col + 1, board);
-    }
-    if (valDireita === val) {
-        board[row][col+1].textContent = val + valDireita;
-        board[row][col].textContent = '';
-        cellsLivres.liberaCell(board[row][col])
-        detectaMovimento.mover();
-        sc.atualizaScore(2 * val);
-    }
-}
-
-function moveParaDireita() {
-    for (let i = 0; i < 4; i++) {
-        for (let j = 3; j >=0; j--) {
-            cellParaDireita(i, j, board)
-        }
-    }
-    if (detectaMovimento.moveu) {
-        cellsLivres.randomCell();
-        detectaMovimento.reset();
-    }
-}
-
-function cellParaEsquerda(row, col, board) {
-    if (col === 0) return;
-    const val = valorCell(board[row][col])
-    if (val === 0) return;
-    const valEsquerda = valorCell(board[row][col-1]);
-    if (valEsquerda === 0) {
-        board[row][col-1].textContent = val;
-        board[row][col].textContent = '';
-        cellsLivres.liberaCell(board[row][col])
-        cellsLivres.ocupaCell(board[row][col-1])
-        detectaMovimento.mover();
-        cellParaEsquerda(row, col - 1, board);
-    }
-    if (valEsquerda === val) {
-        board[row][col-1].textContent = val + valEsquerda;
-        board[row][col].textContent = '';
-        cellsLivres.liberaCell(board[row][col])
-        detectaMovimento.mover();
-        sc.atualizaScore(2 * val);
-    }
-}
-
-function moveParaEsquerda() {
-    for (let i = 0; i < 4; i++) {
-        for (let j = 0; j < 4; j++) {
-            cellParaEsquerda(i, j, board)
-        }
-    }
-    if (detectaMovimento.moveu) {
-        cellsLivres.randomCell();
-        detectaMovimento.reset();
-    }
-}
-
-//helper function
-function valorCell(cell) {
-    let val = parseInt(cell.textContent);
-    if (isNaN(val)) return 0;
-    else return val;
-}
-
-// estiliza o tabuleiro após cada jogada
-function setEstilo(board) {
-    for (let linha of board) {
-        for (let cell of linha) {
-            cell.className = estilos[cell.textContent];
-        }
-    }
-}
-
-// event listener
-function checkKey(e) {
-    if (!checkValidMove(board)) alert("GAME OVER");
-    e = e || window.event;
-    if (e.keyCode == '38') {
-        // up arrow
-        moveParaCima();
-    }
-    else if (e.keyCode == '40') {
-        // down arrow
-        moveParaBaixo();
-    }
-    else if (e.keyCode == '37') {
-       // left arrow
-       moveParaEsquerda();
-    }
-    else if (e.keyCode == '39') {
-       // right arrow
-       moveParaDireita();
-    }
-    setEstilo(board);
-}
 
 // score
 class Score {
-    constructor(board) {
-        this.board = board;
+    constructor() {
         this.score = document.getElementById('score');
         this.best = document.getElementById('best');
         this.scoreVal = 0;
@@ -268,111 +148,115 @@ class Score {
         this.atualizaScore(0);
     }
 }
-    
 
-// verifica se há jogadas válidas
-function checkCell(row, col, board) {
-    const val = valorCell(board[row][col])
-    
-    if (val === 0) {return true;}
+
+// funções para mover e colapsar(somar) as celulas
+
+// recebe um array (linha ou coluna da matriz) e desloca
+// as celulas, removendo os espações em branco (com zeros)
+// o array é sempre ajustado para o início e reorientado
+// quando for settar as linhas e colunas
+function move(arr) {
+    for (let i = 1; i < 4; i++) {
+        if (arr[i] === 0) continue;
+        let j = i;
+        while (arr[j-1] === 0) {
+            arr[j-1] = arr[j];
+            arr[j] = 0;
+            j--;
+            detectaMovimento.mover();
+        }
+    }
+    return arr;
+}
+
+// mesma ideia, mas colapsa (soma) apenas a célula contigua uma vez
+function colapsa(arr) {
+    for (let i = 1; i < 4; i++) {
+        if (arr[i] === 0) return;
+        let j = i;
+        if (arr[i] === arr[i-1]) {
+            arr[i-1] += arr[i];
+            arr[i] = 0;
+            score.atualizaScore(arr[i-1])
+            detectaMovimento.mover();
+        }
+    }
+}
+
+function novoJogo() {
+    matriz.cellLivres = new Array;
+    for (let i = 0; i < N; i++) {
+        for (let j = 0; j < N; j++) {
+            matriz.matriz[i][j] = 0;
+            // inclui o elemento cell na lista de cells livres
+            matriz.cellLivres.push(document.getElementById(`${i}-${j}`))
+        }
+    }
+    matriz.randomCell();
+    matriz.randomCell();
+    matriz.updateDisplay();
+    score.reset();
+}
+
+// verifica se há movimento possível para uma célula 
+function checkCell(row, col) {
+    const val = matriz.matriz[row][col]
+    if (val === 0) return true;
     if (row > 0) {
-        const valAcima = valorCell(board[row-1][col]);
-        if (val === valAcima) {return true;}
+        const valAcima = matriz.matriz[row-1][col];
+        if (val === valAcima) return true;
     }
     if (row < 3) {
-        const valAbaixo = valorCell(board[row+1][col]); 
-        if (val === valAbaixo) {return true;}
+        const valAbaixo = matriz.matriz[row+1][col]; 
+        if (val === valAbaixo) return true; 
     }
     if (col > 0) {
-        const valEsquerda = valorCell(board[row][col-1]);
-        if (val === valEsquerda) {return true;}
+        const valEsquerda = matriz.matriz[row][col-1];
+        if (val === valEsquerda) return true;
     }
     if (col < 3) {
-        const valDireita = valorCell(board[row][col+1]); 
-        if (val === valDireita) {return true;}
+        const valDireita = matriz.matriz[row][col+1]; 
+        if (val === valDireita) return true;
     }
     return false;
 }
 
-function checkValidMove(board) {
+function checkValidMove() {
     for (let i = 0; i < 4; i++) {
         for (let j = 0; j < 4; j++) {
-            if (checkCell(i, j, board)) {return true;}
+            if (checkCell(i, j)) return true;
         }
     }
     return false;
 }
 
-// reinicia o jogo
-function novoJogo() {
-    for (let row of board) {
-        for (let cell of row) {
-            cell.textContent = '';
-        }
+/* ------------------------------------------------------------------------------------------------*/
+/* ------------------------------------------------------------------------------------------------*/
+/* ------------------------------------------------------------------------------------------------*/
+// constrói o grid no html
+const grid = document.querySelector('#grid')
+for (let i = 0; i < N; i++) {
+    let row = document.createElement('tr');
+    for (let j = 0; j < N; j++) {
+        let cell = document.createElement('td');
+        cell.classList.add('cell');
+        cell.setAttribute('id', `${i}-${j}`);
+        row.appendChild(cell);
     }
-    sc.reset();
-    cellsLivres.reset();
-    cellsLivres.randomCell();
-    cellsLivres.randomCell();
-    setEstilo(board);
-}
-/* =========================================================================== */
-/* ===================funcões para teste e depuração========================== */
-/* =========================================================================== */
-
-function limpaBoard() {
-    for (let i = 0; i < 4; i++) {
-        for (let j = 0; j < 4; j++) {
-            board[i][j].textContent = '';
-            board[i][j].className = 'cell';
-        }
-    }
+    grid.appendChild(row);
 }
 
-function setLinha(row, valores) {
-    for (let i = 0; i < 4; i++) {
-        board[row][i].textContent = valores[i];
-        board[row][i].className = estilos[valores[i]];
-    }
-}
-
-function setColuna(col, valores) {
-    for (let i = 0; i < 4; i++) {
-        board[i][col].textContent = valores[i];
-        board[i][col].className = estilos[valores[i]];
-    }
-}
-
-
-
-
-/* =========================================================================== */
-/* ====================INSTANCIA E INICIALIZA ================================ */
-/* =========================================================================== */
-
-// cria o tabuleiro
-const cells = document.getElementsByClassName('cell');
-let board = [];
-for (let i = 0; i < 4; i++) {
-    let row = []
-    for (let j = 0; j < 4; j++) {
-        row.push(cells[(i*4)+j]);
-    }
-    board.push(row);
-}
-
-// inicia o jogo
-const cellsLivres = new Cells(board);   
-cellsLivres.randomCell();
-cellsLivres.randomCell();
-
+const matriz = new Matriz(N);
 const detectaMovimento = new Movimento();
+const score = new Score();
 
-// eventListener
-document.onkeydown = checkKey;
-
-const sc = new Score(board);
-sc.imprimeScore();
+score.imprimeScore();
 
 const bt = document.getElementById('reset');
 bt.onclick = novoJogo;
+
+window.addEventListener('keydown', (e) => {
+    const eventos = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
+    if (eventos.includes(e.key)) matriz.move(e.key)
+} )
