@@ -268,15 +268,28 @@ let touchstartX = 0
 let touchendX = 0
     
 function checkDirection() {
-  if (touchendX < touchstartX) alert('swiped left!')
-  if (touchendX > touchstartX) alert('swiped right!')
+    let horizontal = touchendX - touchstartX;
+    let vertical = touchendY - touchstartY;
+
+    if (Math.abs(horizontal) >= Math.abs(verrtical)) {
+        if (horizontal >= 0) move('ArrowRight');
+        else move('ArrowLeft');
+    } else {
+        if (vertical >= 0) move('ArrowDown');
+        else move('ArrowUp')
+    }
+
+    if (touchendX < touchstartX) alert('swiped left!')
+    if (touchendX > touchstartX) alert('swiped right!')
 }
 
 document.addEventListener('touchstart', e => {
-  touchstartX = e.changedTouches[0].screenX
+    touchstartX = e.changedTouches[0].screenX
+    touchstartY = e.changedTouches[0].screenY
 })
 
 document.addEventListener('touchend', e => {
-  touchendX = e.changedTouches[0].screenX
-  checkDirection()
+    touchendX = e.changedTouches[0].screenX
+    touchendY = e.changedTouches[0].screenY
+    checkDirection()
 })
