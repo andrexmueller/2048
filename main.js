@@ -266,6 +266,9 @@ window.addEventListener('keydown', (e) => {
 
 let touchstartX = 0
 let touchendX = 0
+let touchstartY = 0
+let touchendY = 0
+
     
 function checkDirection() {
     let horizontal = touchendX - touchstartX;
